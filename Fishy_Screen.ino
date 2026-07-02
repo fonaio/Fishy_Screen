@@ -14,11 +14,31 @@
 //motion sensor
 #define MOTION 20  //D7, GPIO20
 
-//home
-#define DND 7     //D5, GPIO7
-#define STATUS 6  //D4, GPIO6
+//home, away
+#define DND_BUTTON 7     //D5, GPIO7
+#define STATUS_BUTTON 6  //D4, GPIO6
+
+#define DND -1
+#define HOME 1
+#define AWAY 0
 
 Adafruit_GC9A01A tft(TFT_CS, TFT_DC, TFT_COPI, TFT_SCLK, TFT_RST, -1);
+
+//If we are just home, show coral reef fish
+void atHome(){
+  
+}
+
+//If we are home + DND, show jellyfish
+void DND(){
+
+
+} 
+
+//If we are away, show fisherman. Clicking the DND button when you are away does not do anything 
+void away(){
+  
+}
 
 void setup() {
   pinMode(MOTION, INPUT_PULLDOWN);
@@ -33,6 +53,8 @@ void setup() {
 
 bool lastMotionState = false;
 bool firstRun = true;
+
+int status = HOME
 
 void loop() {
   bool motionState = digitalRead(MOTION);
