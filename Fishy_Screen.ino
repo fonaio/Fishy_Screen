@@ -2,8 +2,9 @@
 #include <Adafruit_GC9A01A.h>
 #include <Adafruit_GFX.h>
 #include <SPI.h>
-#include <WiFi.h> 
+#include <WiFiClientSecure.h>
 #include <PubSubClient.h> 
+#include <Background.c>
 
 //MQTT information
 const char* MQTT_HOST = "23c7c9e727f2450999e63ac8d5f5eda0.s1.eu.hivemq.cloud";
@@ -11,7 +12,7 @@ const int   MQTT_PORT = 8883;
 const char* MQTT_USER = "FishFish";
 const char* MQTT_PASS = "BlubBlubBlub00";
 
-WiFiClient espClient;
+WiFiClientSecure espClient;
 PubSubClient client(espClient);
 
 //screen constants
@@ -41,11 +42,13 @@ Adafruit_GC9A01A tft(TFT_CS, TFT_DC, TFT_COPI, TFT_SCLK, TFT_RST, -1);
 #define TEXT_H 20
 
 void showHome(){ // only show coral reef fish
-  tft.fillRect(TEXT_X, TEXT_Y, TEXT_W, TEXT_H, 0x0000); // only clear the text area
+  /*tft.fillRect(TEXT_X, TEXT_Y, TEXT_W, TEXT_H, 0x0000); // only clear the text area
   tft.setTextColor(0xFFFF);
   tft.setTextSize(2);
   tft.setCursor(TEXT_X, TEXT_Y);
-  tft.print("AT HOME");
+  tft.print("AT HOME");*/
+  
+  tft.drawRGBBitmap(0, 0, (const uint16_t*)Background_map, 240, 240);
 }
 
 void showDND(){ //deep sea fish
@@ -75,8 +78,8 @@ void setup() {
   digitalWrite(TFT_BL, HIGH);
 
   tft.begin();
-  tft.setSPISpeed(40000000);
-  tft.fillScreen(GC9A01A_BLACK);
+  tft.setSPISpeed(80000000);
+  showHome();
   Serial.begin(9600);
 }
 
