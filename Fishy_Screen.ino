@@ -5,6 +5,9 @@
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h> 
 #include <Background.c>
+#include <Grey_1.c>
+#include <Pink_1.c>
+#include <Nemo_1.c>
 
 //MQTT information
 const char* MQTT_HOST = "23c7c9e727f2450999e63ac8d5f5eda0.s1.eu.hivemq.cloud";
@@ -51,6 +54,9 @@ void showHome(){ // only show coral reef fish
   tft.drawRGBBitmap(0, 0, (const uint16_t*)Background_map, 240, 240);
 }
 
+void chooseRandomFish(){
+  
+}
 void showDND(){ //deep sea fish
   tft.fillRect(TEXT_X, TEXT_Y, TEXT_W, TEXT_H, 0x0000);
   tft.setTextColor(0xFFFF);
