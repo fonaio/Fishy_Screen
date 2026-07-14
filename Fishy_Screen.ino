@@ -48,7 +48,15 @@ Adafruit_GC9A01A tft(TFT_CS, TFT_DC, TFT_COPI, TFT_SCLK, TFT_RST, -1);
 #define TEXT_W 160   // adjust to fit your longest string ("DND ON" etc.)
 #define TEXT_H 20
 
-//animation
+//patch update for away 
+const uint16_t* animFrames[4] = {
+  (const uint16_t*)Away1_map[0],
+  (const uint16_t*)Away1_map[1],
+  (const uint16_t*)Away1_map[2],
+  (const uint16_t*)Away1_map[3]
+};
+
+//fish animation (home + DND)
 typedef const uint8_t (*FishAnimation)[800];
 
 enum BiomeType {
@@ -63,7 +71,7 @@ FishAnimation coralReefFish[3] = {
 };
 
 FishAnimation deepSeaFish[3] = {
-  angler1_map 
+  angler1_map,
   squid1_map, 
   Grey_1_map
 };
@@ -100,30 +108,47 @@ void animateSwim(FishAnimation fishToDraw){
   }
 }
 
+void patchUpdate(const uint16_t* fullMap, int x0, int y0, int w, int h, int img_width){
+  //creates a patch on the away status to update the music notes
+  uint16_t patch[w*h];
+  for (int row = 0; row < h; row++){
+    const uint16_t* srcRow = fullMap + (y0 + row) * img_width + x0;
+    memcpy(&patch[row * w], srcRow, w*sizeof(uint16_t));
+  }
+  tft.drawRGBBitmap(x0, y0, patch, w, h);
+}
+
 void showHome(){ // only show coral reef fish
-  /*tft.fillRect(TEXT_X, TEXT_Y, TEXT_W, TEXT_H, 0x0000); // only clear the text area
-  tft.setTextColor(0xFFFF);
-  tft.setTextSize(2);
-  tft.setCursor(TEXT_X, TEXT_Y);
-  tft.print("AT HOME");*/
-  
   tft.drawRGBBitmap(0, 0, (const uint16_t*)Coral_Reef_map, 240, 240);
 }
 void showDND(){ //deep sea fish
-  /*tft.fillRect(TEXT_X, TEXT_Y, TEXT_W, TEXT_H, 0x0000);
-  tft.setTextColor(0xFFFF);
-  tft.setTextSize(2);
-  tft.setCursor(TEXT_X, TEXT_Y);
-  tft.print("DND ON");*/
   tft.drawRGBBitmap(0, 0, (const uint16_t*)Deep_Sea_map, 240, 240);
 }
 
 void showAway(){ //fisherman
-  tft.fillRect(TEXT_X, TEXT_Y, TEXT_W, TEXT_H, 0x0000);
-  tft.setTextColor(0xFFFF);
-  tft.setTextSize(2);
-  tft.setCursor(TEXT_X, TEXT_Y);
-  tft.print("AWAY");
+  tft.drawRGBBitmap(0, 0, (const uint16_t*)Away1_map, 240, 240);
+
+}
+
+//timing
+int currFrame = 0;
+unsigned long lastFrameTime = 0;
+const unsigned long frameInterval = 400;
+
+//Away patch coordinates
+const int PATCH_X = 118;
+const int PATCH_Y = 84;
+const int PATCH_W = 20;
+const int PATCH_H = 28;
+
+int animateMusic(int currFrame){
+//animates the music notes by going to the next frame
+  int currTime = millis();
+  if (currTime - lastFrameTime > frameInterval){
+    lastFrameTime = currTime;
+    currFrame = (1+currFrame)%4;
+    patchUpdate(animFrames[currFrame], PATCH_X, PATCH_Y, PATCH_W, PATCH_H, 240);
+  }
 }
 
 void setup() {
@@ -151,6 +176,10 @@ bool dnd_state = false;
 bool lastPresence = false;
 bool lastDnd = false;
 
+#define HOME 0
+#define AWAY 1
+#define DND 2
+
 void loop() {
   bool presenceRead = digitalRead(PRESENCE_BUTTON);
   bool dndRead = digitalRead(DND_BUTTON);
@@ -162,30 +191,36 @@ void loop() {
   if (presencePressed || dndPressed) { 
     if (presencePressed) {
       presence_state = !presence_state;
-      Serial.println("Grey button pressed");
+      Serial.println("Home/Away button pressed");
     }
     if (dndPressed && presence_state) {
       dnd_state = !dnd_state;
-      Serial.println("Red button pressed");
+      Serial.println("DND button pressed");
     }
     
     if (presence_state && !dnd_state) {
       showHome();
+      currentStatus = HOME;
     }
     
     else if (presence_state && dnd_state) {
       showDND();
+      currentStatus = DND;
     }
     
     else { //Away + DND or Away + !DND
       showAway();
+      currentStatus = AWAY;
     }
   }
+
+  if (currentStatus == AWAY) {
+    animateMusic(currFrame);
+  }
+
   lastPresence = presenceRead;
   lastDnd = dndRead;
 }
-
-
 
 //motion stuffs
 /*
