@@ -180,6 +180,8 @@ bool lastDnd = false;
 #define AWAY 1
 #define DND 2
 
+int currentStatus = HOME;
+
 void loop() {
   bool presenceRead = digitalRead(PRESENCE_BUTTON);
   bool dndRead = digitalRead(DND_BUTTON);
