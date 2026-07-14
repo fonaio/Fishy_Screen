@@ -8,12 +8,12 @@
 #include "Coral_Reef.c"
 #include "Nemo_1.c"
 #include "Pink_1.c"
-#include "Grey_1.c"
+#include "jellyfish1.c"
 
 #include "Deep_Sea.c"
 #include "angler1.c"
 #include "squid1.c"
-#include "jellyfish1.c"
+#include "Grey_1.c"
 
 #include "Away1.c"
 
@@ -57,7 +57,7 @@ enum BiomeType {
 };
 
 FishAnimation coralReefFish[3] = {
-  Grey_1_map, 
+  jellyfish1_map,
   Pink_1_map, 
   nemo_1_map
 };
@@ -65,7 +65,7 @@ FishAnimation coralReefFish[3] = {
 FishAnimation deepSeaFish[3] = {
   angler1_map 
   squid1_map, 
-  jellyfish1_map
+  Grey_1_map
 };
 
 
