@@ -51,19 +51,46 @@ Adafruit_GC9A01A tft(TFT_CS, TFT_DC, TFT_COPI, TFT_SCLK, TFT_RST, -1);
 #define TEXT_H 20*/
 
 //fish animation (home + DND)
-#define MAGENTA 0x1FF8 //make this magenta color act as a transparent block
+#define MAGENTA 0xF81F //make this magenta color act as a transparent block
 typedef const uint8_t (*FishAnimation)[800];
 
 enum BiomeType {
   CORAL_REEF,
   DEEP_SEA,
-  AWAY
+  AWAY_BIOME
 };
+
+BiomeType biome = CORAL_REEF;
 
 FishAnimation coralReefFish[3] = {
   jellyfish1_map,
   Pink_1_map, 
   nemo_1_map
+};
+
+//Sprites for coral reef
+const uint16_t* Pink_map[5] = {
+  (const uint16_t*)Pink_1_map[0],
+  (const uint16_t*)Pink_1_map[1],
+  (const uint16_t*)Pink_1_map[2],
+  (const uint16_t*)Pink_1_map[3],
+  (const uint16_t*)Pink_1_map[4]
+};
+
+const uint16_t* Jellyfish_map[5] = {
+  (const uint16_t*)jellyfish1_map[0],
+  (const uint16_t*)jellyfish1_map[1],
+  (const uint16_t*)jellyfish1_map[2],
+  (const uint16_t*)jellyfish1_map[3],
+  (const uint16_t*)jellyfish1_map[4]
+};
+
+const uint16_t* Nemo_map[5] = {
+  (const uint16_t*)nemo_1_map[0],
+  (const uint16_t*)nemo_1_map[1],
+  (const uint16_t*)nemo_1_map[2],
+  (const uint16_t*)nemo_1_map[3],
+  (const uint16_t*)nemo_1_map[4]
 };
 
 FishAnimation deepSeaFish[3] = {
@@ -72,39 +99,61 @@ FishAnimation deepSeaFish[3] = {
   Grey_1_map
 };
 
-//music notes for away
-const uint16_t* animFrames[2] = {
-  (const uint16_t*)away_musicnotes1_map[0],
-  (const uint16_t*)away_musicnotes1_map[1],
+const uint16_t* angler_map[5] = {
+  (const uint16_t*)angler1_map[0],
+  (const uint16_t*)angler1_map[1],
+  (const uint16_t*)angler1_map[2],
+  (const uint16_t*)angler1_map[3],
+  (const uint16_t*)angler1_map[4]
 };
 
-BiomeType currentBiome = CORAL_REEF;
+const uint16_t* squid_map[5] = {
+  (const uint16_t*)squid1_map[0],
+  (const uint16_t*)squid1_map[1],
+  (const uint16_t*)squid1_map[2],
+  (const uint16_t*)squid1_map[3],
+  (const uint16_t*)squid1_map[4]
+};
+
+const uint16_t* Grey_map[5] = {
+  (const uint16_t*)Grey_1_map[0],
+  (const uint16_t*)Grey_1_map[1],
+  (const uint16_t*)Grey_1_map[2],
+  (const uint16_t*)Grey_1_map[3],
+  (const uint16_t*)Grey_1_map[4]
+};
+
+//Sprites for Away
+const uint16_t* musicNotes_map[2] = {
+  (const uint16_t*)away_musicnotes1_map[0],
+  (const uint16_t*)away_musicnotes1_map[1]
+};
 
 const uint16_t* getBiomeMap(BiomeType biome) {
   //background lookup
   switch (biome) {
     case CORAL_REEF: return (const uint16_t*) Coral_Reef_map;
     case DEEP_SEA:   return (const uint16_t*)Deep_Sea_map;
-    case AWAY:       return (const uint16_t*)Away1_map;
+    case AWAY_BIOME:       return (const uint16_t*)Away1_map;
   }
   return (const uint16_t*) Coral_Reef_map;
 }
 
-FishAnimation chooseRandomFish(BiomeType currentBiome){
+FishAnimation chooseRandomFish(BiomeType biome){
   //Chooses a random fish depending on the 'biome'
   int randomIndex = random(0, 3);
 
-  if (currentBiome == CORAL_REEF){
+  if (biome == CORAL_REEF){
     return coralReefFish[randomIndex];
   }
 
-  if(currentBiome == DEEP_SEA){
+  if(biome == DEEP_SEA){
     return deepSeaFish[randomIndex];
   }
 }
 
-void patchUpdate(const uint16_t* fullMap, const uint16_t* patchMap, int x0, int y0, int w, int h){
-  //creates a background patch corresponding to the map
+void patchUpdate(const uint16_t* fullMap, int x0, int y0, int w, int h){
+  //creates a background patch corresponding to 240x240 map
   uint16_t patch[w*h];
   for (int row = 0; row < h; row++){
     const uint16_t* srcRow = fullMap + (y0 + row) * 240 + x0;
@@ -113,13 +162,26 @@ void patchUpdate(const uint16_t* fullMap, const uint16_t* patchMap, int x0, int 
   tft.drawRGBBitmap(x0, y0, patch, w, h);
 }
 
-inline uint16_t getFishPixel(const uint8_t* frame, int index) {
-  // combines two bytes into one RGB565 pixel value
-  return (frame[index * 2] << 8) | frame[index * 2 + 1];
-}
-
-void drawSprite(int x0, int y0, int w, int h, int img_width){
-  //draws the sprite, ignoring magenta pixels (0x1FF8)
+void drawSprite(const uint16_t* spriteFrame, int x0, int y0, int w, int h){
+  //draws the sprite (fish or music), ignoring magenta pixels (0x1FF8)
+  uint16_t rowBuf[w];
+  for (int row = 0; row < h; row++){
+    int col = 0;
+    while(col < w){
+      if(spriteFrame[row * w + col] == MAGENTA) { //ignore magenta blocks
+        col++;
+        continue;
+    }
+    int runstart = col;
+    int runLen = 0;
+    while (col < w && spriteFrame[row * w + col] != MAGENTA) {
+        rowBuf[runLen] = spriteFrame[row * w + col];
+        runLen++;
+        col++;
+    }
+    tft.drawRGBBitmap(x0 + runstart, y0 + row, rowBuf, runLen, 1);
+    }
+  }
 }
 
 void animateSwim(FishAnimation fishToDraw){
@@ -160,16 +222,17 @@ const unsigned long frameInterval = 400;
 //Away patch coordinates
 const int PATCH_X = 118;
 const int PATCH_Y = 84;
-const int PATCH_W = 20;
-const int PATCH_H = 28;
+const int PATCH_W = 18;
+const int PATCH_H = 25;
 
 void animateMusic(){
-//animates the music notes by going to the next frame
+//animates the music notes. Draws a frame, patches, draws another frame on top
   int currTime = millis();
   if (currTime - lastFrameTime > frameInterval){
     lastFrameTime = currTime;
+    patchUpdate(getBiomeMap(biome), PATCH_X, PATCH_Y, PATCH_W, PATCH_H);
     currFrame = (1+currFrame)%2;
-    //patchUpdate(animFrames[currFrame], PATCH_X, PATCH_Y, PATCH_W, PATCH_H);
+    drawSprite(musicNotes_map[currFrame], PATCH_X, PATCH_Y, PATCH_W, PATCH_H);
   }
 }
 
@@ -237,10 +300,19 @@ void loop() {
       currentStatus = AWAY;
     }
   }
+  if (currentStatus == HOME) {
+    biome = CORAL_REEF;
+  }
+  
+  if (currentStatus == DND) {
+    biome = DEEP_SEA;
+  }
 
   if (currentStatus == AWAY) {
+    biome = AWAY_BIOME;
     animateMusic();
   }
+
 
   lastPresence = presenceRead;
   lastDnd = dndRead;
