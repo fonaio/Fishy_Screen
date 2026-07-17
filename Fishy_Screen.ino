@@ -52,7 +52,6 @@ Adafruit_GC9A01A tft(TFT_CS, TFT_DC, TFT_COPI, TFT_SCLK, TFT_RST, -1);
 
 //fish animation (home + DND)
 #define MAGENTA 0xF81F  //make this magenta color act as a transparent block
-typedef const uint8_t (*FishAnimation)[800];
 
 enum BiomeType {
   CORAL_REEF,
@@ -62,14 +61,7 @@ enum BiomeType {
 
 BiomeType biome = CORAL_REEF;
 
-FishAnimation coralReefFish[3] = {
-  jellyfish1_map,
-  Pink_1_map,
-  nemo_1_map
-};
-
 //Sprites for coral reef
-
 const uint16_t* Pink_map[5] = {
   (const uint16_t*)Pink_1_map[0],
   (const uint16_t*)Pink_1_map[1],
@@ -92,12 +84,6 @@ const uint16_t* Nemo_map[5] = {
   (const uint16_t*)nemo_1_map[2],
   (const uint16_t*)nemo_1_map[3],
   (const uint16_t*)nemo_1_map[4]
-};
-//Sprites for deep sea fish
-FishAnimation deepSeaFish[3] = {
-  angler1_map,
-  squid1_map,
-  Grey_1_map
 };
 
 const uint16_t* angler_map[5] = {
@@ -124,6 +110,20 @@ const uint16_t* Grey_map[5] = {
   (const uint16_t*)Grey_1_map[4]
 };
 
+//Sprites for coral reef fish
+const uint16_t** coralReefFishU16[3] = {
+  Jellyfish_map,
+  Pink_map,
+  Nemo_map
+};
+
+//Sprites for deep sea fish
+const uint16_t** deepSeaFishU16[3] = {
+  angler_map,
+  squid_map,
+  Grey_map
+};
+
 //Sprites for Away
 const uint16_t* musicNotes_map[2] = {
   (const uint16_t*)away_musicnotes1_map[0],
@@ -140,15 +140,14 @@ const uint16_t* getBiomeMap(BiomeType biome) {
   return (const uint16_t*)Coral_Reef_map;
 }
 
-
 //Chooses a random fish to spawn depending on the 'biome'
-FishAnimation chooseRandomFish(BiomeType biome) {
+const uint16_t** chooseRandomFish(BiomeType biome) {
   int randomIndex = random(0, 3);
   if (biome == CORAL_REEF) {
-    return coralReefFish[randomIndex];
+    return coralReefFishU16[randomIndex];
   }
   if (biome == DEEP_SEA) {
-    return deepSeaFish[randomIndex];
+    return deepSeaFishU16[randomIndex];
   }
 }
 
@@ -184,26 +183,35 @@ void drawSprite(const uint16_t* spriteFrame, int x0, int y0, int w, int h) {
   }
 }
 
-//Flips through the swimming frames of the fish. Draws fish, wipes, updates next spawn location, draws next frame
-//Chooses a random y-spawn for the fish
-void animateSwim(FishAnimation fishToDraw) {
-  int screenWidth = 240;
-  int screenHeight = 240;
-  int fishWidth = 20;
-  int fishHeight = 20;
+//timing variables
+int currFrame_fish = 0;
+unsigned long lastFrameTime_fish = 0;
+const unsigned long frameInterval_fish = 100;
 
-  int currentY = random(20, screenHeight - fishHeight);
+int currentY = random(20, 220);
+int currentX = -20;
+int speedX = 3;
+const uint16_t** currentFish = chooseRandomFish(biome);
 
-  int currentX = -fishWidth;
-  int speedX = random(1, 5);  //distance between each frame
-
-  int frameindex = 0;
-
-  while (currentX < screenWidth) {
-    /* Draw fish, wipe, update next spawn location, draw next frame*/
+/*Flips through the swimming frames of the fish. Draws fish, wipes, updates next spawn location, draws next frame
+Chooses a random y-spawn for the fish*/
+void animateSwim() {
+  unsigned long currTime_fish = millis();
+  if (currTime_fish - lastFrameTime_fish > frameInterval_fish) {
+    lastFrameTime_fish = currTime_fish;
+    patchUpdate(getBiomeMap(biome), currentX, currentY, 20, 20);
+    currFrame_fish = (currFrame_fish + 1) % 5;
+    currentX += speedX;
+    if (currentX > 240) {
+      currentX = -20;
+      currentY = random(20, 220);
+      speedX = 3;
+      currentFish = chooseRandomFish(biome);
+      currFrame_fish = 0;
+    }
+    drawSprite(currentFish[currFrame_fish], currentX, currentY, 20, 20);
   }
 }
-
 // Background show functions
 void showHome() {  
   tft.drawRGBBitmap(0, 0, (const uint16_t*)Coral_Reef_map, 240, 240);
@@ -216,9 +224,9 @@ void showAway() {  //fisherman
 }
 
 //timing
-int currFrame = 0;
-unsigned long lastFrameTime = 0;
-const unsigned long frameInterval = 400;
+int currFrame_away = 0;
+unsigned long lastFrameTime_away = 0;
+const unsigned long frameInterval_away = 400;
 
 //Away patch coordinates
 const int PATCH_X = 118;
@@ -228,12 +236,12 @@ const int PATCH_H = 25;
 
 //animates the music notes. Draws a frame, patches, draws another frame on top
 void animateMusic() {
-  int currTime = millis();
-  if (currTime - lastFrameTime > frameInterval) {
-    lastFrameTime = currTime;
+  int currTime_away = millis();
+  if (currTime_away - lastFrameTime_away > frameInterval_away) {
+    lastFrameTime_away = currTime_away;
     patchUpdate(getBiomeMap(biome), PATCH_X, PATCH_Y, PATCH_W, PATCH_H);
-    currFrame = (1 + currFrame) % 2;
-    drawSprite(musicNotes_map[currFrame], PATCH_X, PATCH_Y, PATCH_W, PATCH_H);
+    currFrame_away = (1 + currFrame_away) % 2;
+    drawSprite(musicNotes_map[currFrame_away], PATCH_X, PATCH_Y, PATCH_W, PATCH_H);
   }
 }
 
@@ -304,14 +312,15 @@ void loop() {
       currentStatus = AWAY;
     }
   }
+
   if (currentStatus == HOME) {
     biome = CORAL_REEF;
-    //animateSwim(chooseRandomFish(biome));
+    animateSwim();
   }
 
   if (currentStatus == DND) {
     biome = DEEP_SEA;
-    //animateSwim(chooseRandomFish(biome));
+    animateSwim();
   }
 
   if (currentStatus == AWAY) {
