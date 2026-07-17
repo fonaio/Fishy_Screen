@@ -1,0 +1,20 @@
+*Current Bugs:*
+
+- When we are on away + press DND, the away screen reloads (stopping music animation) and appears again. Maybe make it so that nothing happens instead? 
+- When a fish from coral_reef is swimming and we switch to deep_sea, the original fish from coral_reef continues swimming in deep_sea. After the animation finishes, then we get the correct fish spawn. 
+- Refresh speed is still kinda slow
+
+
+*Future Additions + Things to work on*
+Code/Hardware
+- Integrate motion sensor
+- Turn on for [a minute]? If we detect motion before turning off
+- Integrate MQTT + communication between 2 esp32’s
+        - Make LCD screen show something depending on the status of the other esp32 
+- Make LED turn on/off corresponding to your own status -- make sure this syncs not to button presses, but rather if the full thing has loaded already
+        - Yellow/Red
+- Maybe make it so that you can be on DND while away??? 
+
+Looks/Aesthetics
+- CAD case for project
+- Soldering wires on prototype board
