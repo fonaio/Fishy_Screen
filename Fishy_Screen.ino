@@ -69,6 +69,7 @@ FishAnimation coralReefFish[3] = {
 };
 
 //Sprites for coral reef
+
 const uint16_t* Pink_map[5] = {
   (const uint16_t*)Pink_1_map[0],
   (const uint16_t*)Pink_1_map[1],
@@ -92,7 +93,7 @@ const uint16_t* Nemo_map[5] = {
   (const uint16_t*)nemo_1_map[3],
   (const uint16_t*)nemo_1_map[4]
 };
-
+//Sprites for deep sea fish
 FishAnimation deepSeaFish[3] = {
   angler1_map,
   squid1_map,
@@ -129,8 +130,8 @@ const uint16_t* musicNotes_map[2] = {
   (const uint16_t*)away_musicnotes1_map[1]
 };
 
+//biome type pointer
 const uint16_t* getBiomeMap(BiomeType biome) {
-  //background lookup
   switch (biome) {
     case CORAL_REEF: return (const uint16_t*)Coral_Reef_map;
     case DEEP_SEA: return (const uint16_t*)Deep_Sea_map;
@@ -139,21 +140,20 @@ const uint16_t* getBiomeMap(BiomeType biome) {
   return (const uint16_t*)Coral_Reef_map;
 }
 
-FishAnimation chooseRandomFish(BiomeType biome) {
-  //Chooses a random fish depending on the 'biome'
-  int randomIndex = random(0, 3);
 
+//Chooses a random fish to spawn depending on the 'biome'
+FishAnimation chooseRandomFish(BiomeType biome) {
+  int randomIndex = random(0, 3);
   if (biome == CORAL_REEF) {
     return coralReefFish[randomIndex];
   }
-
   if (biome == DEEP_SEA) {
     return deepSeaFish[randomIndex];
   }
 }
 
+//creates a background patch corresponding to 240x240 map
 void patchUpdate(const uint16_t* fullMap, int x0, int y0, int w, int h) {
-  //creates a background patch corresponding to 240x240 map
   uint16_t patch[w * h];
   for (int row = 0; row < h; row++) {
     const uint16_t* srcRow = fullMap + (y0 + row) * 240 + x0;
@@ -162,8 +162,8 @@ void patchUpdate(const uint16_t* fullMap, int x0, int y0, int w, int h) {
   tft.drawRGBBitmap(x0, y0, patch, w, h);
 }
 
+//draws the sprite (fish or music), ignoring magenta pixels (0x1FF8)
 void drawSprite(const uint16_t* spriteFrame, int x0, int y0, int w, int h) {
-  //draws the sprite (fish or music), ignoring magenta pixels (0x1FF8)
   uint16_t rowBuf[w];
   for (int row = 0; row < h; row++) {
     int col = 0;
@@ -184,6 +184,8 @@ void drawSprite(const uint16_t* spriteFrame, int x0, int y0, int w, int h) {
   }
 }
 
+//Flips through the swimming frames of the fish. Draws fish, wipes, updates next spawn location, draws next frame
+//Chooses a random y-spawn for the fish
 void animateSwim(FishAnimation fishToDraw) {
   int screenWidth = 240;
   int screenHeight = 240;
@@ -202,7 +204,8 @@ void animateSwim(FishAnimation fishToDraw) {
   }
 }
 
-void showHome() {  // only show coral reef fish
+// Background show functions
+void showHome() {  
   tft.drawRGBBitmap(0, 0, (const uint16_t*)Coral_Reef_map, 240, 240);
 }
 void showDND() {  //deep sea fish
@@ -223,8 +226,8 @@ const int PATCH_Y = 84;
 const int PATCH_W = 18;
 const int PATCH_H = 25;
 
+//animates the music notes. Draws a frame, patches, draws another frame on top
 void animateMusic() {
-  //animates the music notes. Draws a frame, patches, draws another frame on top
   int currTime = millis();
   if (currTime - lastFrameTime > frameInterval) {
     lastFrameTime = currTime;
@@ -234,6 +237,7 @@ void animateMusic() {
   }
 }
 
+//MQTT server setup for esp32c3 pairing
 void setup() {
   client.setServer(MQTT_HOST, MQTT_PORT);
   pinMode(MOTION, INPUT_PULLDOWN);
@@ -250,15 +254,17 @@ void setup() {
   Serial.begin(9600);
 }
 
+//motion detection variables
 bool lastMotionState = false;
 bool firstRun = true;
 
+//variables for detecting button press
 bool presence_state = true;
 bool dnd_state = false;
-
 bool lastPresence = false;
 bool lastDnd = false;
 
+//variables for defining statuses
 #define HOME 0
 #define AWAY 1
 #define DND 2
@@ -312,8 +318,6 @@ void loop() {
     biome = AWAY_BIOME;
     animateMusic();
   }
-
-
   lastPresence = presenceRead;
   lastDnd = dndRead;
 }
